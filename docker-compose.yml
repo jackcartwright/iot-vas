@@ -179,6 +179,15 @@ services:
       - gvmd
       - ospd-openvas
 
+  # The following service is specific to this repository and used for serving static content and reverse proxying the flask API
+  nginx-server:
+    restart: on-failure
+    build: ./nginx
+    ports:
+      - 127.0.0.1:8888:80
+    depends_on:
+      - flask-app
+
 # These volumes are configured according to https://greenbone.github.io/docs/latest/22.4/container/index.html#docker-compose-file
 volumes:
   gpg_data_vol:
