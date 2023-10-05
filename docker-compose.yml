@@ -170,8 +170,6 @@ services:
   flask-app:
     restart: on-failure
     build: ./app
-    ports:
-      - 127.0.0.1:8080:5000
     volumes:
       - gvmd_socket_vol:/run/gvmd
       - ospd_openvas_socket_vol:/run/ospd
