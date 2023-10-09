@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 
 from gvm.connections import UnixSocketConnection
 from gvm.errors import GvmError
@@ -68,6 +68,21 @@ def get_port_lists():
             names = response.xpath('port_list/name/text()')
         return {'port_lists': ids, 'names': names}
     except GvmError as e:
+        return {'error': '1'}
+
+@app.route("/create_task", methods = ['POST'])
+def create_task():
+    request_json = request.json
+    if request_json.keys() >= {"name", "host", "config_id", "scanner_id"}:
+        try:
+            with Gmp(connection=connection, transform=transform) as gmp:
+                gmp.authenticate(username, password)
+                target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['host']], port_range='T:1-65535,U:1-65535').xpath('@id')
+                task_id = gmp.create_task(name=request_json['name'], config_id=request_json['config_id'], target_id=target_id[0], scanner_id=request_json['scanner_id']).xpath('@id')
+            return {'UUID': task_id[0]}
+        except GvmError as e:
+            return {'error': '1'}
+    else:
         return {'error': '1'}
 
 if __name__ == '__main__':
