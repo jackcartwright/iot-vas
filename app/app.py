@@ -1,13 +1,18 @@
-from flask import Flask, request
+from flask import Flask, request, make_response
 
 from gvm.connections import UnixSocketConnection
 from gvm.errors import GvmError
 from gvm.protocols.gmp import Gmp
 from gvm.transforms import EtreeCheckCommandTransform
+from gvm.protocols.gmpv224 import ReportFormatType
 
 from lxml import etree
 
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+from markupsafe import escape
+
+from base64 import b64decode
 
 path = '/run/gvmd/gvmd.sock'
 connection = UnixSocketConnection(path=path)
@@ -83,6 +88,20 @@ def create_task():
         except GvmError as e:
             return {'error': '1'}
     else:
+        return {'error': '1'}
+
+@app.route("/report/<uuid:report_id>")
+def get_report(report_id):
+    try:
+        with Gmp(connection=connection, transform=transform) as gmp:
+            gmp.authenticate(username, password)
+            report = gmp.get_report(report_id=escape(report_id), report_format_id=ReportFormatType.PDF)
+            content = report.xpath('report/text()')[0]
+            pdf_bytes = b64decode(content.encode("ascii"))
+            response = make_response(pdf_bytes)
+            response.headers.set('Content-Type', 'application/pdf')
+            return response
+    except GvmError as e:
         return {'error': '1'}
 
 if __name__ == '__main__':
