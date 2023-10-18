@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, abort
 
 from gvm.connections import UnixSocketConnection
 from gvm.errors import GvmError
@@ -49,7 +49,7 @@ def get_scanners():
             names = response.xpath('scanner/name/text()')
         return {'scanners': scanners, 'names': names}
     except GvmError as e:
-        return {'error': '1'}
+        abort(500)
 
 @app.route("/configs")
 def get_configs():
@@ -61,7 +61,7 @@ def get_configs():
             names = response.xpath('config/name/text()')
         return {'configs': ids, 'names': names}
     except GvmError as e:
-        return {'error': '1'}
+        abort(500)
 
 @app.route("/port_lists")
 def get_port_lists():
@@ -73,7 +73,7 @@ def get_port_lists():
             names = response.xpath('port_list/name/text()')
         return {'port_lists': ids, 'names': names}
     except GvmError as e:
-        return {'error': '1'}
+        abort(500)
 
 @app.route("/create_task", methods = ['POST'])
 def create_task():
@@ -86,9 +86,9 @@ def create_task():
                 task_id = gmp.create_task(name=request_json['name'], config_id=request_json['config_id'], target_id=target_id[0], scanner_id=request_json['scanner_id']).xpath('@id')
             return {'UUID': task_id[0]}
         except GvmError as e:
-            return {'error': '1'}
+            abort(500)
     else:
-        return {'error': '1'}
+        abort(400)
 
 @app.route("/report/<uuid:report_id>")
 def get_report(report_id):
@@ -102,7 +102,7 @@ def get_report(report_id):
             response.headers.set('Content-Type', 'application/pdf')
             return response
     except GvmError as e:
-        return {'error': '1'}
+        abort(500)
 
 if __name__ == '__main__':
     app.run(debug=True)
