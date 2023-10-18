@@ -90,7 +90,7 @@ def create_task():
     else:
         abort(400)
 
-@app.route("/report/<uuid:report_id>")
+@app.route("/report/<uuid:report_id>.pdf", methods = ['GET'])
 def get_report(report_id):
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
