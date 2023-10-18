@@ -90,6 +90,40 @@ def create_task():
     else:
         abort(400)
 
+@app.route("/start_task", methods = ['POST'])
+def start_task():
+    request_json = request.json
+    if request_json.keys() >= {"task_id"}:
+        try:
+            with Gmp(connection=connection, transform=transform) as gmp:
+                gmp.authenticate(username, password)
+                response_xml = gmp.start_task(request_json['task_id'])
+            return {'status': response_xml.xpath('@status')[0]}
+        except GvmError as e:
+            abort(500)
+    else:
+        abort(400)
+
+@app.route("/task_progress/<uuid:task_id>", methods = ['GET'])
+def task_progress(task_id):
+    try:
+        with Gmp(connection=connection, transform=transform) as gmp:
+            gmp.authenticate(username, password)
+            task_xml = gmp.get_task(escape(task_id))
+        return {'status': task_xml.xpath('task/status/text()')[0], 'progress': task_xml.xpath('task/progress/text()')[0]}
+    except GvmError as e:
+        abort(500)
+
+@app.route("/report_progress/<uuid:report_id>", methods = ['GET'])
+def report_progress(report_id):
+    try:
+        with Gmp(connection=connection, transform=transform) as gmp:
+            gmp.authenticate(username, password)
+            report_xml = gmp.get_report(escape(report_id))
+        return {'progress': report_xml.xpath('report/report/task/progress/text()')[0]}
+    except GvmError as e:
+        abort(500)
+
 @app.route("/report/<uuid:report_id>.pdf", methods = ['GET'])
 def get_report(report_id):
     try:
