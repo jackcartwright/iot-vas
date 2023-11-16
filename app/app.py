@@ -78,13 +78,28 @@ def get_port_lists():
 @app.route("/create_task", methods = ['POST'])
 def create_task():
     request_json = request.json
-    if request_json.keys() >= {"name", "host", "config_id", "scanner_id"}:
+    if request_json.keys() >= {"name", "target_id", "config_id", "scanner_id"}:
         try:
             with Gmp(connection=connection, transform=transform) as gmp:
                 gmp.authenticate(username, password)
-                target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['host']], port_range='T:1-65535,U:1-65535').xpath('@id')
-                task_id = gmp.create_task(name=request_json['name'], config_id=request_json['config_id'], target_id=target_id[0], scanner_id=request_json['scanner_id']).xpath('@id')
+                task_id = gmp.create_task(name=request_json['name'], config_id=request_json['config_id'], target_id=request_json['target_id'], scanner_id=request_json['scanner_id']).xpath('@id')
             return {'UUID': task_id[0]}
+        except GvmError as e:
+            abort(500)
+    elif request_json.keys() >= {"name", "hosts", "config_id", "scanner_id"}:
+        try:
+            with Gmp(connection=connection, transform=transfrom) as gmp:
+                target_id = gmp.create_target(name=request_json['name'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
+                task_id = gmp.create_task(name=request_json['name'] + ' task', config_id=request_json['config_id'], target_id=target_id, scanner_id=request_json['scanner_id']).xpath('@id')
+                gmp.authenticate(username, password)
+        except GvmError as e:
+            abort(500)
+    elif request_json.keys() >= {"hosts", "config_id", "scanner_id"}:
+        try:
+            with Gmp(connection=connection, transform=transfrom) as gmp:
+                target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
+                task_id = gmp.create_task(name=request_json['hosts'] + ' task', config_id=request_json['config_id'], target_id=target_id, scanner_id=request_json['scanner_id']).xpath('@id')
+                gmp.authenticate(username, password)
         except GvmError as e:
             abort(500)
     else:
