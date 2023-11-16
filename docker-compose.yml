@@ -173,6 +173,9 @@ services:
     volumes:
       - gvmd_socket_vol:/run/gvmd
       - ospd_openvas_socket_vol:/run/ospd
+      - sqlite_vol:/usr/src/app/instance
+    environment:
+      - FLASK_APP=project
     depends_on:
       - gvmd
       - ospd-openvas
@@ -200,3 +203,5 @@ volumes:
   gvmd_socket_vol:
   ospd_openvas_socket_vol:
   redis_socket_vol:
+  # The following volume stores an sqlite database for user data
+  sqlite_vol:

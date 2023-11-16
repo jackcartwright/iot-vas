@@ -8,6 +8,6 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
     && rm requirements.txt
 
-COPY app.py ./
+COPY project/ ./project/
 
-CMD [ "python", "-m", "flask", "run", "--host=0.0.0.0" ]
+CMD [ "flask", "run", "-h", "0.0.0.0" ]
