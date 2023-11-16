@@ -75,6 +75,69 @@ def get_port_lists():
     except GvmError as e:
         abort(500)
 
+@app.route("/targets", methods = ['GET', 'POST'])
+def targets():
+    if request.method == 'POST':
+        request_json = request.json
+        if request_json.keys() >= {"name", "hosts", "port_list_id"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_list_id=request_json['port_list_id']).xpath('@id')
+                return {'name': request_json['name'], 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        elif request_json.keys() >= {"name", "hosts", "port_range"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_range=request_json['port_range']).xpath('@id')
+                return {'name': request_json['name'], 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        elif request_json.keys() >= {"hosts", "port_list_id"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range=request_json['port_list_id']).xpath('@id')
+                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        elif request_json.keys() >= {"hosts", "port_range"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range=request_json['port_range']).xpath('@id')
+                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        elif request_json.keys() >= {"name", "hosts"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
+                return {'name': request_json['name'], 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        elif request_json.keys() >= {"hosts"}:
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
+                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
+            except GvmError as e:
+                abort(500)
+        else:
+            abort(400)
+    elif request.method == 'GET':
+        try:
+            with Gmp(connection=connection, transform=transform) as gmp:
+                gmp.authenticate(username, password)
+                targets_xml = gmp.get_targets()
+            return {'uuids': targets_xml.xpath('target/@id'), 'names': targets_xml.xpath('target/name/text()')}
+        except GvmError as e:
+            abort(500)
+
 @app.route("/create_task", methods = ['POST'])
 def create_task():
     request_json = request.json
