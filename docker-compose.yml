@@ -169,7 +169,7 @@ services:
   # The following service is specific to this repository
   flask-app:
     restart: on-failure
-    build: ./app
+    build: ./flask
     volumes:
       - gvmd_socket_vol:/run/gvmd
       - ospd_openvas_socket_vol:/run/ospd
