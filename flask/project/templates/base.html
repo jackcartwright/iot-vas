@@ -9,6 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Flask Auth Example</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" integrity="sha384-n+0XPuNbU1PaXosJ2ARqt1UgnvuTZqsh+D9uoJRHCanp/VOTJXtZaWOzCzwMZF0n" crossorigin="anonymous">
+    {% block headscripts %}
+    {% endblock %}
 </head>
 
 <body>
@@ -26,6 +28,9 @@
                             {% if current_user.is_authenticated %}
                             <a href="{{ url_for('main.profile') }}" class="navbar-item">
                                 Profile
+                            </a>
+                            <a href="{{ url_for('main.scan') }}" class="navbar-item">
+                                Scan
                             </a>
                             {% endif %}
                             {% if not current_user.is_authenticated %}
@@ -54,6 +59,10 @@
             </div>
         </div>
     </section>
+
+    {% block scripts %}
+    {% endblock %}
+
 </body>
 
 </html>
