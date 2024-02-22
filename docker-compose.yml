@@ -166,21 +166,24 @@ services:
       - gvmd
       - ospd-openvas
 
-  # The following service is specific to this repository
+
+  # The remaining services are specific to this repository
+
+  # Provides the backend functionality of the web app
   flask-app:
     restart: on-failure
     build: ./flask
     volumes:
       - gvmd_socket_vol:/run/gvmd
       - ospd_openvas_socket_vol:/run/ospd
-      - sqlite_vol:/usr/src/app/instance
     environment:
       - FLASK_APP=project
     depends_on:
       - gvmd
       - ospd-openvas
+      - db
 
-  # The following service is specific to this repository and used for serving static content and reverse proxying the flask API
+  # For serving static content and reverse proxying the flask API
   nginx-server:
     restart: on-failure
     build: ./nginx
@@ -188,6 +191,22 @@ services:
       - 127.0.0.1:8888:80
     depends_on:
       - flask-app
+
+  # For storing user data
+  db:
+    image: postgres
+    restart: always
+    volumes: 
+      - db_data_vol:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: admin
+
+  # For manual management of the database
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 127.0.0.1:8080:8080
 
 # These volumes are configured according to https://greenbone.github.io/docs/latest/22.4/container/index.html#docker-compose-file
 volumes:
@@ -203,5 +222,5 @@ volumes:
   gvmd_socket_vol:
   ospd_openvas_socket_vol:
   redis_socket_vol:
-  # The following volume stores an sqlite database for user data
-  sqlite_vol:
+  # The following volume is specific to this repository and stores postgresql database data for user data
+  db_data_vol:

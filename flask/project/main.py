@@ -12,9 +12,9 @@ def index():
 @main.route('/profile')
 @login_required
 def profile():
-    return render_template('profile.html', name=current_user.name)
+    return render_template('profile.html', name=current_user.id)
 
 @main.route('/scan')
 @login_required
 def scan():
-    return render_template('scan.html', name=current_user.name)
+    return render_template('scan.html', name=current_user.id)
