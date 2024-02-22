@@ -4,9 +4,8 @@
 
 |To Do|Doing|Done|
 |-|-|-|
-|Database schema                             |Make API require auth|Replace sqlite with postgresql|
-|Devices page                                |                     |Replace ORM with psycopg      |
-|Reports page                                |                     |                              |
+|Devices page                                |Make API require auth|Replace sqlite with postgresql|
+|Reports page                                |Database schema      |Replace ORM with psycopg      |
 |Overview page                               |                     |                              |
 |Admin page for managing gvm and psql backend|                     |                              |
 

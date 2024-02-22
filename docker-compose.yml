@@ -194,8 +194,8 @@ services:
 
   # For storing user data
   db:
-    image: postgres
     restart: always
+    build: ./db
     volumes: 
       - db_data_vol:/var/lib/postgresql/data
     environment:
