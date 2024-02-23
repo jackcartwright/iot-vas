@@ -1,6 +1,6 @@
 from flask import Blueprint, request, make_response, abort
 
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from gvm.connections import UnixSocketConnection
 from gvm.errors import GvmError
@@ -30,6 +30,7 @@ username = 'admin'
 password = 'admin'
 
 @api.route("/version")
+@login_required
 def get_version():
     with Gmp(connection=connection, transform=transform) as gmp:
         response = gmp.get_version()
@@ -37,6 +38,7 @@ def get_version():
     return {'version': vers}
 
 @api.route("/scanners")
+@login_required
 def get_scanners():
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
@@ -49,6 +51,7 @@ def get_scanners():
         abort(500)
 
 @api.route("/configs")
+@login_required
 def get_configs():
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
@@ -61,6 +64,7 @@ def get_configs():
         abort(500)
 
 @api.route("/port_lists")
+@login_required
 def get_port_lists():
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
@@ -73,6 +77,7 @@ def get_port_lists():
         abort(500)
 
 @api.route("/targets", methods = ['GET', 'POST'])
+@login_required
 def targets():
     if request.method == 'POST':
         request_json = request.json
@@ -136,6 +141,7 @@ def targets():
             abort(500)
 
 @api.route("/create_task", methods = ['POST'])
+@login_required
 def create_task():
     request_json = request.json
     if request_json.keys() >= {"name", "target_id", "config_id", "scanner_id"}:
@@ -168,6 +174,7 @@ def create_task():
         abort(400)
 
 @api.route("/start_task", methods = ['POST'])
+@login_required
 def start_task():
     request_json = request.json
     if request_json.keys() >= {"task_id"}:
@@ -182,6 +189,7 @@ def start_task():
         abort(400)
 
 @api.route("/task_progress/<uuid:task_id>", methods = ['GET'])
+@login_required
 def task_progress(task_id):
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
@@ -192,6 +200,7 @@ def task_progress(task_id):
         abort(500)
 
 @api.route("/report_progress/<uuid:report_id>", methods = ['GET'])
+@login_required
 def report_progress(report_id):
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
@@ -202,6 +211,7 @@ def report_progress(report_id):
         abort(500)
 
 @api.route("/report/<uuid:report_id>.pdf", methods = ['GET'])
+@login_required
 def get_report(report_id):
     try:
         with Gmp(connection=connection, transform=transform) as gmp:
