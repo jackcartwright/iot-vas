@@ -44,6 +44,8 @@ def signup_post():
 
     name = request.form.get('name')
     password = request.form.get('password')
+    password_hash = generate_password_hash(password)
+    remember = True if request.form.get('remember') else False
 
     with psycopg.connect("host=db user=postgres password=admin") as conn:
         with conn.cursor(row_factory=class_row(User)) as cur:
@@ -54,9 +56,10 @@ def signup_post():
                 return redirect(url_for('auth.signup'))
 
             # add the new user to the database
-            cur.execute("INSERT INTO users (name, password) VALUES (%s, %s)", (name, generate_password_hash(password)))
+            cur.execute("INSERT INTO users (name, password) VALUES (%s, %s)", (name, password_hash))
 
-    return redirect(url_for('auth.login'))
+    login_user(User(name, password_hash), remember=remember)
+    return redirect(url_for('main.profile'))
 
 @auth.route('/logout')
 @login_required
