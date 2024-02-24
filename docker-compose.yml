@@ -195,8 +195,6 @@ services:
   db:
     restart: always
     build: ./db
-    volumes: 
-      - db_data_vol:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: admin
 
@@ -221,5 +219,3 @@ volumes:
   gvmd_socket_vol:
   ospd_openvas_socket_vol:
   redis_socket_vol:
-  # The following volume is specific to this repository and stores postgresql database data for user data
-  db_data_vol:
