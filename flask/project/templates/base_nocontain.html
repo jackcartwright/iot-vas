@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <section class="hero is-primary is-fullheight">
+    <section class="hero is-primary">
 
         <div class="hero-head">
             <nav class="navbar">
@@ -52,12 +52,9 @@
             </nav>
         </div>
 
-        <div class="hero-body">
-            <div class="container has-text-centered">
-               {% block content %}
-               {% endblock %}
-            </div>
-        </div>
+       {% block content %}
+       {% endblock %}
+
     </section>
 
 </body>

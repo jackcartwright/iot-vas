@@ -1,4 +1,8 @@
-from flask import Blueprint, request, make_response, abort
+import psycopg
+
+from psycopg.rows import class_row
+
+from flask import Blueprint, request, make_response, abort, render_template, flash, redirect, url_for
 
 from flask_login import login_required, current_user
 
@@ -13,6 +17,8 @@ from lxml import etree
 from markupsafe import escape
 
 from base64 import b64decode
+
+from .models import Target
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -80,55 +86,30 @@ def get_port_lists():
 @login_required
 def targets():
     if request.method == 'POST':
-        request_json = request.json
-        if request_json.keys() >= {"name", "hosts", "port_list_id"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_list_id=request_json['port_list_id']).xpath('@id')
-                return {'name': request_json['name'], 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
-        elif request_json.keys() >= {"name", "hosts", "port_range"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_range=request_json['port_range']).xpath('@id')
-                return {'name': request_json['name'], 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
-        elif request_json.keys() >= {"hosts", "port_list_id"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range=request_json['port_list_id']).xpath('@id')
-                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
-        elif request_json.keys() >= {"hosts", "port_range"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range=request_json['port_range']).xpath('@id')
-                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
-        elif request_json.keys() >= {"name", "hosts"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['name'], hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
-                return {'name': request_json['name'], 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
-        elif request_json.keys() >= {"hosts"}:
-            try:
-                with Gmp(connection=connection, transform=transform) as gmp:
-                    gmp.authenticate(username, password)
-                    target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
-                return {'name': request_json['hosts'] + 'target', 'UUID': target_id[0]}
-            except GvmError as e:
-                abort(500)
+        name = request.form.get('name')
+        hosts = request.form.get('host')
+        if hosts is not None:
+            
+            with psycopg.connect("host=db user=postgres password=admin") as conn:
+                with conn.cursor() as cur:
+                    uuid = cur.execute("SELECT uuid FROM targets WHERE name = %s AND owner = %s LIMIT 1", (name,current_user.id)).fetchone()
+
+                    if uuid is not None:
+                        flash('A target with that name already exists!')
+                        response = make_response()
+                        response.headers.set('HX-Redirect', url_for('main.targets'))
+                        return response
+
+                    try:
+                        with Gmp(connection=connection, transform=transform) as gmp:
+                            gmp.authenticate(username, password)
+                            target_id = gmp.create_target(name=name + ' ' + current_user.id, hosts=[hosts], port_range='T:1-65535,U:1-65535').xpath('@id')
+                            cur.execute("INSERT INTO targets (uuid, name, hosts, owner) VALUES (%s, %s, %s, %s)", (target_id, name, hosts, current_user.id))
+                    except GvmError as e:
+                        abort(500)
+                with conn.cursor(row_factory=class_row(Target)) as cur:
+                    targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
+                    return render_template('targets_response.html', targets=targets)
         else:
             abort(400)
     elif request.method == 'GET':
