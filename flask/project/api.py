@@ -89,17 +89,14 @@ def targets():
         name = request.form.get('name')
         hosts = request.form.get('host')
         if hosts is not None:
-            
             with psycopg.connect("host=db user=postgres password=admin") as conn:
-                with conn.cursor() as cur:
-                    uuid = cur.execute("SELECT uuid FROM targets WHERE name = %s AND owner = %s LIMIT 1", (name,current_user.id)).fetchone()
-
-                    if uuid is not None:
+                with conn.cursor(row_factory=class_row(Target)) as cur:
+                    target = cur.execute("SELECT * FROM targets WHERE name = %s AND owner = %s LIMIT 1", (name,current_user.id)).fetchone()
+                    if target is not None:
                         flash('A target with that name already exists!')
-                        response = make_response()
-                        response.headers.set('HX-Redirect', url_for('main.targets'))
-                        return response
-
+                        targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
+                        return render_template('targets_response.html', targets=targets)
+                with conn.cursor() as cur:
                     try:
                         with Gmp(connection=connection, transform=transform) as gmp:
                             gmp.authenticate(username, password)
