@@ -4,11 +4,12 @@
 
 |To Do|Doing|Done|
 |-|-|-|
-|Devices page                                |Use htmx for frontend|Replace sqlite with postgresql|
-|Reports page                                |                     |Replace ORM with psycopg      |
-|Overview page                               |                     |Make API require auth         |
-|Admin page for managing gvm and psql backend|                     |Database schema               |
-
+|Overview page                               |Reports page|Replace sqlite with postgresql|
+|Admin page for managing gvm and psql backend|            |Replace ORM with psycopg      |
+|                                            |            |Make API require auth         |
+|                                            |            |Database schema               |
+|                                            |            |Use htmx for frontend         |
+|                                            |            |Devices page                  |
 
 ## Creating updated requirements.txt
 

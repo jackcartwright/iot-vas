@@ -13,3 +13,10 @@ class Target():
         self.name = name
         self.hosts = hosts
         self.owner = owner
+
+class Scan():
+    def __init__(self, name, target, uuid, owner):
+        self.name = name
+        self.target = target
+        self.uuid = uuid
+        self.owner = owner

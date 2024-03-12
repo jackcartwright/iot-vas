@@ -6,9 +6,30 @@ from psycopg.rows import class_row
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 
-from .models import Target
+from gvm.connections import UnixSocketConnection
+from gvm.errors import GvmError
+from gvm.protocols.gmp import Gmp
+from gvm.transforms import EtreeCheckCommandTransform
+from gvm.protocols.gmpv224 import ReportFormatType
+
+from lxml import etree
+
+from .models import Target, Scan
 
 main = Blueprint('main', __name__)
+
+path = '/run/gvmd/gvmd.sock'
+connection = UnixSocketConnection(path=path)
+transform = EtreeCheckCommandTransform()
+
+# default username with greenbone containers
+username = 'admin'
+
+# default password with greenbone containers
+# CHANGE ACCORDING TO:
+# https://greenbone.github.io/docs/latest/22.4/container/index.html#setting-up-an-admin-user
+# AFTER docker compose up -d
+password = 'admin'
 
 @main.route('/')
 def index():
@@ -22,7 +43,29 @@ def profile():
 @main.route('/scan')
 @login_required
 def scan():
-    return render_template('scan.html', name=current_user.id)
+    with psycopg.connect("host=db user=postgres password=admin") as conn:
+        with conn.cursor(row_factory=class_row(Target)) as cur:
+            targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
+        with conn.cursor(row_factory=class_row(Scan)) as cur:
+            scans = cur.execute("SELECT * FROM tasks WHERE owner = %s", (current_user.id,)).fetchall()
+    try:
+        with Gmp(connection=connection, transform=transform) as gmp:
+            gmp.authenticate(username, password)
+            response = gmp.get_scanners()
+            scanner_ids = response.xpath('scanner/@id')
+            scanner_names = response.xpath('scanner/name/text()')
+            scanners = []
+            for id, name in zip(scanner_ids, scanner_names):
+                scanners.append((id, name))
+            response = gmp.get_scan_configs()
+            config_ids = response.xpath('config/@id')
+            config_names = response.xpath('config/name/text()')
+            configs = []
+            for id, name in zip(config_ids, config_names):
+                configs.append((id, name))
+    except GvmError as e:
+        abort(500)
+    return render_template('scan.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
 
 @main.route('/targets')
 @login_required

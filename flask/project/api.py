@@ -18,7 +18,7 @@ from markupsafe import escape
 
 from base64 import b64decode
 
-from .models import Target
+from .models import Target, Scan
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -88,7 +88,7 @@ def targets():
     if request.method == 'POST':
         name = request.form.get('name')
         hosts = request.form.get('host')
-        if hosts is not None:
+        if hosts is not None and name is not None:
             with psycopg.connect("host=db user=postgres password=admin") as conn:
                 with conn.cursor(row_factory=class_row(Target)) as cur:
                     target = cur.execute("SELECT * FROM targets WHERE name = %s AND owner = %s LIMIT 1", (name,current_user.id)).fetchone()
@@ -121,33 +121,68 @@ def targets():
 @api.route("/create_task", methods = ['POST'])
 @login_required
 def create_task():
-    request_json = request.json
-    if request_json.keys() >= {"name", "target_id", "config_id", "scanner_id"}:
-        try:
-            with Gmp(connection=connection, transform=transform) as gmp:
-                gmp.authenticate(username, password)
-                task_id = gmp.create_task(name=request_json['name'], config_id=request_json['config_id'], target_id=request_json['target_id'], scanner_id=request_json['scanner_id']).xpath('@id')
-            return {'UUID': task_id[0]}
-        except GvmError as e:
-            abort(500)
-    elif request_json.keys() >= {"name", "hosts", "config_id", "scanner_id"}:
-        try:
-            with Gmp(connection=connection, transform=transfrom) as gmp:
-                gmp.authenticate(username, password)
-                target_id = gmp.create_target(name=request_json['name'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
-                task_id = gmp.create_task(name=request_json['name'] + ' task', config_id=request_json['config_id'], target_id=target_id, scanner_id=request_json['scanner_id']).xpath('@id')
-            return {'UUID': task_id[0]}
-        except GvmError as e:
-            abort(500)
-    elif request_json.keys() >= {"hosts", "config_id", "scanner_id"}:
-        try:
-            with Gmp(connection=connection, transform=transfrom) as gmp:
-                gmp.authenticate(username, password)
-                target_id = gmp.create_target(name=request_json['hosts'] + ' target', hosts=[request_json['hosts']], port_range='T:1-65535,U:1-65535').xpath('@id')
-                task_id = gmp.create_task(name=request_json['hosts'] + ' task', config_id=request_json['config_id'], target_id=target_id, scanner_id=request_json['scanner_id']).xpath('@id')
-            return {'UUID': task_id[0]}
-        except GvmError as e:
-            abort(500)
+    name = request.form.get('name')
+    target = request.form.get('target')
+    config = request.form.get('config')
+    scanner = request.form.get('scanner')
+    if name is not None and target is not None and config is not None and scanner is not None:
+        with psycopg.connect("host=db user=postgres password=admin") as conn:
+            with conn.cursor(row_factory=class_row(Scan)) as cur:
+                task = cur.execute("SELECT * FROM tasks WHERE name = %s AND owner = %s LIMIT 1", (name,current_user.id)).fetchone()
+            if task is not None:
+                flash('A scan with that name already exists!')
+                with conn.cursor(row_factory=class_row(Target)) as cur:
+                    targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
+                with conn.cursor(row_factory=class_row(Scan)) as cur:
+                    scans = cur.execute("SELECT * FROM tasks WHERE owner = %s", (current_user.id,)).fetchall()
+                try:
+                    with Gmp(connection=connection, transform=transform) as gmp:
+                        gmp.authenticate(username, password)
+                        response = gmp.get_scanners()
+                        scanner_ids = response.xpath('scanner/@id')
+                        scanner_names = response.xpath('scanner/name/text()')
+                        scanners = []
+                        for id, name in zip(scanner_ids, scanner_names):
+                            scanners.append((id, name))
+                        response = gmp.get_scan_configs()
+                        config_ids = response.xpath('config/@id')
+                        config_names = response.xpath('config/name/text()')
+                        configs = []
+                        for id, name in zip(config_ids, config_names):
+                            configs.append((id, name))
+                except GvmError as e:
+                    abort(500)
+                return render_template('scan_response.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
+            with conn.cursor() as cur:
+                try:
+                    with Gmp(connection=connection, transform=transform) as gmp:
+                        gmp.authenticate(username, password)
+                        task_id = gmp.create_task(name=name + ' ' + current_user.id, config_id=config, scanner_id=scanner, target_id=target[1:-1]).xpath('@id')
+                        cur.execute("INSERT INTO tasks (name, target, uuid, owner) VALUES (%s, %s, %s, %s)", (name, target, task_id, current_user.id))
+                except GvmError as e:
+                    abort(500)
+            with conn.cursor(row_factory=class_row(Target)) as cur:
+                targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
+            with conn.cursor(row_factory=class_row(Scan)) as cur:
+                scans = cur.execute("SELECT * FROM tasks WHERE owner = %s", (current_user.id,)).fetchall()
+            try:
+                with Gmp(connection=connection, transform=transform) as gmp:
+                    gmp.authenticate(username, password)
+                    response = gmp.get_scanners()
+                    scanner_ids = response.xpath('scanner/@id')
+                    scanner_names = response.xpath('scanner/name/text()')
+                    scanners = []
+                    for id, name in zip(scanner_ids, scanner_names):
+                        scanners.append((id, name))
+                    response = gmp.get_scan_configs()
+                    config_ids = response.xpath('config/@id')
+                    config_names = response.xpath('config/name/text()')
+                    configs = []
+                    for id, name in zip(config_ids, config_names):
+                        configs.append((id, name))
+            except GvmError as e:
+                abort(500)
+            return render_template('scan_response.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
     else:
         abort(400)
 
