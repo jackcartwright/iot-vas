@@ -63,9 +63,14 @@ def scan():
             configs = []
             for id, name in zip(config_ids, config_names):
                 configs.append((id, name))
+            scan_list = []
+            for scan in scans:
+                response_xml = gmp.get_task(scan.uuid[1:-1])
+                in_use = response_xml.xpath('task/in_use/text()')[0]
+                scan_list.append((scan, in_use))
     except GvmError as e:
         abort(500)
-    return render_template('scan.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
+    return render_template('scan.html', targets=targets, scans=scan_list, scanners=scanners, configs=configs)
 
 @main.route('/targets')
 @login_required

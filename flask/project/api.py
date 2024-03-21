@@ -150,9 +150,14 @@ def create_task():
                         configs = []
                         for id, name in zip(config_ids, config_names):
                             configs.append((id, name))
+                        scan_list = []
+                        for scan in scans:
+                            response_xml = gmp.get_task(scan.uuid[1:-1])
+                            in_use = response_xml.xpath('task/in_use/text()')[0]
+                            scan_list.append((scan, in_use))
                 except GvmError as e:
                     abort(500)
-                return render_template('scan_response.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
+                return render_template('scan_response.html', targets=targets, scans=scan_list, scanners=scanners, configs=configs)
             with conn.cursor() as cur:
                 try:
                     with Gmp(connection=connection, transform=transform) as gmp:
@@ -180,22 +185,51 @@ def create_task():
                     configs = []
                     for id, name in zip(config_ids, config_names):
                         configs.append((id, name))
+                    scan_list = []
+                    for scan in scans:
+                        response_xml = gmp.get_task(scan.uuid[1:-1])
+                        in_use = response_xml.xpath('task/in_use/text()')[0]
+                        scan_list.append((scan, in_use))
             except GvmError as e:
                 abort(500)
-            return render_template('scan_response.html', targets=targets, scans=scans, scanners=scanners, configs=configs)
+            return render_template('scan_response.html', targets=targets, scans=scan_list, scanners=scanners, configs=configs)
     else:
         abort(400)
 
 @api.route("/start_task", methods = ['POST'])
 @login_required
 def start_task():
-    request_json = request.json
-    if request_json.keys() >= {"task_id"}:
+    task_id = request.form.get('task_id')
+    scan_name = request.form.get('scan_name')
+    scan_target = request.form.get('scan_target')
+    if task_id is not None:
         try:
             with Gmp(connection=connection, transform=transform) as gmp:
                 gmp.authenticate(username, password)
-                response_xml = gmp.start_task(request_json['task_id'])
-            return {'status': response_xml.xpath('@status')[0]}
+                response_xml = gmp.get_task(task_id[1:-1])
+                in_use = response_xml.xpath('task/in_use/text()')[0]
+                if in_use == '0':
+                    gmp.start_task(task_id[1:-1])
+            return render_template('start_task_response.html', scan_name=scan_name, scan_target=scan_target, scan_uuid=task_id)
+        except GvmError as e:
+            abort(500)
+    else:
+        abort(400)
+
+@api.route("/get_task_in_use", methods = ['GET'])
+@login_required
+def get_scan_in_use():
+    task_id = request.args.get('task_id')
+    if task_id is not None:
+        try:
+            with Gmp(connection=connection, transform=transform) as gmp:
+                gmp.authenticate(username, password)
+                response_xml = gmp.get_task(task_id[1:-1])
+                in_use = response_xml.xpath('task/in_use/text()')[0]
+                if in_use == '0':
+                    return '<button class="button" type="submit">Submit</button>'
+                else:
+                    return '<progress class="progress is-small"></progress>'
         except GvmError as e:
             abort(500)
     else:
