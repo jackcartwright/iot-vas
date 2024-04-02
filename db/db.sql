@@ -22,5 +22,6 @@ CREATE TABLE tasks (
 CREATE TABLE reports (
     uuid varchar PRIMARY KEY,
     owner varchar REFERENCES users(name) NOT NULL,
-    task varchar REFERENCES tasks(uuid) NOT NULL
+    task varchar REFERENCES tasks(uuid) NOT NULL,
+    time timestamp NOT NULL
 );

@@ -20,3 +20,10 @@ class Scan():
         self.target = target
         self.uuid = uuid
         self.owner = owner
+
+class Report():
+    def __init__(self, uuid, owner, task, time):
+        self.uuid = uuid
+        self.owner = owner
+        self.task = task
+        self.time = time
