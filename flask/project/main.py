@@ -14,7 +14,7 @@ from gvm.protocols.gmpv224 import ReportFormatType
 
 from lxml import etree
 
-from .models import Target, Scan
+from .models import Target, Scan, Report
 
 main = Blueprint('main', __name__)
 
@@ -79,3 +79,16 @@ def targets():
         with conn.cursor(row_factory=class_row(Target)) as cur:
             targets = cur.execute("SELECT * FROM targets WHERE owner = %s", (current_user.id,)).fetchall()
     return render_template('targets.html', targets=targets)
+
+@main.route('/reports')
+@login_required
+def reports():
+    report_list = []
+    with psycopg.connect("host=db user=postgres password=admin") as conn:
+        with conn.cursor(row_factory=class_row(Report)) as cur:
+            reports = cur.execute("SELECT * FROM reports WHERE owner = %s", (current_user.id,)).fetchall()
+        with conn.cursor() as cur:
+            for report in reports:
+                scan_name = cur.execute("SELECT name FROM tasks WHERE uuid = %s", (report.task,)).fetchone()[0]
+                report_list.append((report, scan_name))
+    return render_template('reports.html', reports=report_list)

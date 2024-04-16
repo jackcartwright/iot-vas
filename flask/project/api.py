@@ -18,6 +18,8 @@ from markupsafe import escape
 
 from base64 import b64decode
 
+from datetime import datetime
+
 from .models import Target, Scan
 
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -209,7 +211,11 @@ def start_task():
                 response_xml = gmp.get_task(task_id[1:-1])
                 in_use = response_xml.xpath('task/in_use/text()')[0]
                 if in_use == '0':
-                    gmp.start_task(task_id[1:-1])
+                    response_xml = gmp.start_task(task_id[1:-1])
+                    report_id = response_xml.xpath('report_id/text()')[0]
+                    with psycopg.connect("host=db user=postgres password=admin") as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("INSERT INTO reports (uuid, owner, task, time) VALUES (%s, %s, %s, %s)", (report_id, current_user.id, task_id, datetime.now()))
             return render_template('start_task_response.html', scan_name=scan_name, scan_target=scan_target, scan_uuid=task_id)
         except GvmError as e:
             abort(500)
